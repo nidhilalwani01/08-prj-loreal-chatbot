@@ -2,15 +2,21 @@
   Replace this URL with your deployed Cloudflare Worker endpoint.
   Example: https://something.workers.dev
 */
-const WORKER_URL = "https://loreal-chatbot.nidhilalwani01.workers.dev";
+const WORKER_URL = "https://loreal-api.nidhilalwani01.workers.dev";
 
-/* DOM elements */
+// DOM elements
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
 const sendBtn = document.getElementById("sendBtn");
 const latestQuestionText = document.getElementById("latestQuestionText");
+const clearChatBtn = document.getElementById("clearChatBtn");
+const presetChips = document.querySelectorAll("[data-prompt]");
 
+const newChatBtn = document.getElementById("newChatBtn");
+const chatHistoryList = document.getElementById("chatHistoryList");
+const sidebarToggle = document.getElementById("sidebarToggle");
+const chatSidebar = document.getElementById("chatSidebar");
 /*
   This system message defines the assistant's behavior and keeps responses
   focused on L'Oréal beauty topics.
@@ -21,8 +27,165 @@ const SYSTEM_MESSAGE = {
     "You are a L'Oréal beauty assistant chatbot. Help users explore L'Oréal products in skincare, makeup, haircare, and fragrances. Suggest simple routines based on user needs and provide clear, helpful beauty advice. Only answer questions related to L'Oréal, beauty, skincare, makeup, haircare, fragrance, and routines. If a question is unrelated, politely refuse and guide the user back to beauty topics. Do not invent product names or product claims if unsure. Keep answers concise, friendly, professional, warm, and premium. For sensitive skin questions or routines, remind users to patch test and check ingredients.",
 };
 
+const INITIAL_GREETING =
+  "Welcome to L'Oréal Beauty Concierge. I can help with L'Oréal skincare, haircare, makeup, fragrance recommendations, and simple routines.";
+
 // Keep full conversation history so the model can answer follow-up questions.
-const conversationHistory = [SYSTEM_MESSAGE];
+let conversationHistory = [SYSTEM_MESSAGE];
+
+// Storage key for persisting chat history
+const CONVERSATIONS_KEY = "loreal-chatbot-conversations";
+let currentConversationId = null;
+let conversations = {};
+
+// Load all conversations from localStorage
+function loadAllConversations() {
+  const stored = localStorage.getItem(CONVERSATIONS_KEY);
+  if (stored) {
+    try {
+      conversations = JSON.parse(stored);
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+      conversations = {};
+    }
+  }
+}
+
+// Save all conversations to localStorage
+function saveAllConversations() {
+  localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+}
+
+// Create a new conversation
+function createNewConversation() {
+  const id = Date.now().toString();
+  conversations[id] = {
+    id,
+    title: "New Conversation",
+    timestamp: new Date().toISOString(),
+    messages: [],
+  };
+  currentConversationId = id;
+  saveAllConversations();
+  loadConversation(id);
+  conversationHistory.push({ role: "assistant", content: INITIAL_GREETING });
+  appendMessage("assistant", INITIAL_GREETING);
+  saveConversation();
+  renderSidebar();
+}
+
+// Load a specific conversation
+function loadConversation(id) {
+  currentConversationId = id;
+  if (!conversations[id]) {
+    createNewConversation();
+    return;
+  }
+
+  const conv = conversations[id];
+  conversationHistory = [SYSTEM_MESSAGE, ...conv.messages];
+
+  // Clear chat window and reload messages
+  chatWindow.innerHTML = "";
+  conv.messages.forEach((msg) => {
+    if (msg.role !== "system") {
+      appendMessage(msg.role, msg.content);
+    }
+  });
+
+  // Update latest question
+  const lastUserMsg = conv.messages.filter((msg) => msg.role === "user").pop();
+  latestQuestionText.textContent = lastUserMsg
+    ? lastUserMsg.content
+    : "Ask your first beauty question to get started.";
+
+  renderSidebar();
+}
+
+// Save current conversation
+function saveConversation() {
+  if (!currentConversationId || !conversations[currentConversationId]) return;
+
+  const messages = conversationHistory.slice(1); // Exclude system message
+  conversations[currentConversationId].messages = messages;
+
+  // Update title from first user message if not set
+  const firstUserMsg = messages.find((msg) => msg.role === "user");
+  if (
+    firstUserMsg &&
+    conversations[currentConversationId].title === "New Conversation"
+  ) {
+    conversations[currentConversationId].title = firstUserMsg.content.substring(
+      0,
+      50,
+    );
+  }
+
+  saveAllConversations();
+}
+
+// Delete a conversation
+function deleteConversation(id, event) {
+  event?.stopPropagation();
+  if (confirm("Delete this conversation?")) {
+    delete conversations[id];
+    saveAllConversations();
+
+    if (currentConversationId === id) {
+      const convIds = Object.keys(conversations);
+      if (convIds.length > 0) {
+        loadConversation(convIds[0]);
+      } else {
+        createNewConversation();
+      }
+    }
+    renderSidebar();
+  }
+}
+
+// Render sidebar conversation list
+function renderSidebar() {
+  chatHistoryList.innerHTML = "";
+  const convIds = Object.keys(conversations).sort(
+    (a, b) =>
+      new Date(conversations[b].timestamp) -
+      new Date(conversations[a].timestamp),
+  );
+
+  convIds.forEach((id) => {
+    const conv = conversations[id];
+    const item = document.createElement("button");
+    item.className = `conversation-item ${id === currentConversationId ? "active" : ""}`;
+    item.type = "button";
+
+    const titleSpan = document.createElement("span");
+    titleSpan.textContent = conv.title || "Untitled";
+    titleSpan.style.flex = "1";
+    titleSpan.style.textAlign = "left";
+    item.appendChild(titleSpan);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "conversation-delete";
+    deleteBtn.type = "button";
+    deleteBtn.textContent = "✕";
+    deleteBtn.onclick = (e) => deleteConversation(id, e);
+    attachPressFeedback(deleteBtn);
+    item.appendChild(deleteBtn);
+
+    item.onclick = () => loadConversation(id);
+    attachPressFeedback(item);
+    chatHistoryList.appendChild(item);
+  });
+}
+
+// Clear chat history
+function clearChatHistory() {
+  if (confirm("Are you sure you want to clear all chat history?")) {
+    conversations = {};
+    localStorage.removeItem(CONVERSATIONS_KEY);
+    createNewConversation();
+  }
+}
 
 // Simple keyword filter for fast client-side refusal of unrelated topics.
 const beautyKeywords = [
@@ -52,12 +215,81 @@ const beautyKeywords = [
   "dye",
 ];
 
-function appendMessage(role, text) {
+function smoothScrollChat() {
+  chatWindow.scrollTo({
+    top: chatWindow.scrollHeight,
+    behavior: "smooth",
+  });
+}
+
+function animatePress(element) {
+  if (!element) return;
+
+  element.classList.remove("press-pop");
+  // Force reflow so the class retriggers on repeated quick clicks.
+  void element.offsetWidth;
+  element.classList.add("press-pop");
+}
+
+function attachPressFeedback(element) {
+  if (!element) return;
+  element.addEventListener("click", () => animatePress(element));
+}
+
+function typeTextIntoBubble(bubble, text, duration = 320) {
+  return new Promise((resolve) => {
+    const totalChars = Math.max(text.length, 1);
+    const start = performance.now();
+
+    function step(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const visibleChars = Math.max(1, Math.floor(totalChars * progress));
+      bubble.textContent = text.slice(0, visibleChars);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        resolve();
+      }
+    }
+
+    requestAnimationFrame(step);
+  });
+}
+
+async function appendMessage(role, text, options = {}) {
+  const { animateTyping = false, highlight = false } = options;
   const message = document.createElement("div");
-  message.className = `chat-bubble ${role}`;
-  message.textContent = text;
+  message.className = `chat-bubble ${role} new-message`;
+
+  if (role === "assistant" && animateTyping) {
+    message.classList.add("is-typing");
+    message.textContent = "";
+  } else {
+    message.textContent = text;
+  }
+
   chatWindow.appendChild(message);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
+  smoothScrollChat();
+
+  if (role === "assistant" && animateTyping) {
+    await typeTextIntoBubble(message, text, 320);
+    message.classList.remove("is-typing");
+  }
+
+  if (role === "assistant" && highlight) {
+    message.classList.add("fresh-assistant");
+    setTimeout(() => {
+      message.classList.remove("fresh-assistant");
+    }, 380);
+  }
+
+  setTimeout(() => {
+    message.classList.remove("new-message", "press-pop");
+  }, 420);
+
+  return message;
 }
 
 function createLoadingBubble() {
@@ -91,11 +323,47 @@ function setSubmittingState(isSubmitting) {
   sendBtn.disabled = isSubmitting;
   userInput.disabled = isSubmitting;
   sendBtn.textContent = isSubmitting ? "Sending..." : "Send";
+
+  // Improve accessibility: announce state changes
+  if (isSubmitting) {
+    sendBtn.setAttribute("aria-busy", "true");
+  } else {
+    sendBtn.setAttribute("aria-busy", "false");
+  }
 }
 
 function isBeautyRelatedQuestion(question) {
   const normalized = question.toLowerCase();
   return beautyKeywords.some((keyword) => normalized.includes(keyword));
+}
+
+function applyPresetPrompt(prompt) {
+  userInput.value = prompt;
+  userInput.focus();
+  userInput.setSelectionRange(prompt.length, prompt.length);
+}
+
+function updateSidebarControls() {
+  const isCollapsed = chatSidebar.classList.contains("collapsed");
+  const label = isCollapsed ? "Open sidebar" : "Hide archive";
+
+  sidebarToggle.setAttribute("aria-label", label);
+  sidebarToggle.title = label;
+
+  const labelEl = sidebarToggle.querySelector(".sidebar-toggle-label");
+  if (labelEl) {
+    labelEl.textContent = isCollapsed ? "Open" : "Hide archive";
+  }
+}
+
+function toggleSidebar(forceState) {
+  const shouldCollapse =
+    typeof forceState === "boolean"
+      ? forceState
+      : !chatSidebar.classList.contains("collapsed");
+
+  chatSidebar.classList.toggle("collapsed", shouldCollapse);
+  updateSidebarControls();
 }
 
 async function fetchAssistantResponse(messages) {
@@ -139,14 +407,19 @@ async function handleSubmit(event) {
 
   // Store user's new message in the shared conversation context.
   conversationHistory.push({ role: "user", content: question });
+  saveConversation(); // Save to localStorage immediately
 
   // Refuse unrelated topics before making an API call.
   if (!isBeautyRelatedQuestion(question)) {
     const refusalMessage =
       "I can only help with L'Oréal beauty topics such as skincare, makeup, haircare, fragrances, and routines. Please share a beauty-related question, and I will gladly assist.";
 
-    appendMessage("assistant", refusalMessage);
+    await appendMessage("assistant", refusalMessage, {
+      animateTyping: true,
+      highlight: true,
+    });
     conversationHistory.push({ role: "assistant", content: refusalMessage });
+    saveConversation(); // Save to localStorage
     return;
   }
 
@@ -157,14 +430,21 @@ async function handleSubmit(event) {
     const assistantReply = await fetchAssistantResponse(conversationHistory);
     removeLoadingBubble();
 
-    appendMessage("assistant", assistantReply);
+    await appendMessage("assistant", assistantReply, {
+      animateTyping: true,
+      highlight: true,
+    });
     conversationHistory.push({ role: "assistant", content: assistantReply });
+    saveConversation(); // Save to localStorage
   } catch (error) {
     removeLoadingBubble();
 
     const fallbackMessage =
       "I am having trouble reaching the beauty assistant right now. Please try again in a moment.";
-    appendMessage("assistant", fallbackMessage);
+    await appendMessage("assistant", fallbackMessage, {
+      animateTyping: true,
+      highlight: true,
+    });
 
     console.error("Chat request error:", error);
   } finally {
@@ -173,10 +453,45 @@ async function handleSubmit(event) {
   }
 }
 
-// Initial greeting from the assistant.
-appendMessage(
-  "assistant",
-  "Welcome to L'Oréal Beauty Concierge. I can help with L'Oréal skincare, haircare, makeup, fragrance recommendations, and simple routines.",
-);
+// Initialize conversations on page load
+loadAllConversations();
 
+// Create first conversation if none exist
+if (Object.keys(conversations).length === 0) {
+  createNewConversation();
+} else {
+  // Load the most recent conversation
+  const convIds = Object.keys(conversations).sort(
+    (a, b) =>
+      new Date(conversations[b].timestamp) -
+      new Date(conversations[a].timestamp),
+  );
+  loadConversation(convIds[0]);
+}
+
+// Show initial greeting if this is the first message
+if (conversationHistory.length === 1) {
+  appendMessage("assistant", INITIAL_GREETING);
+  conversationHistory.push({ role: "assistant", content: INITIAL_GREETING });
+  saveConversation();
+}
+
+// Event listeners
 chatForm.addEventListener("submit", handleSubmit);
+newChatBtn.addEventListener("click", createNewConversation);
+clearChatBtn.addEventListener("click", clearChatHistory);
+sidebarToggle.addEventListener("click", () => toggleSidebar());
+
+presetChips.forEach((chip) => {
+  attachPressFeedback(chip);
+  chip.addEventListener("click", () => {
+    applyPresetPrompt(chip.dataset.prompt || "");
+  });
+});
+
+attachPressFeedback(sendBtn);
+attachPressFeedback(newChatBtn);
+attachPressFeedback(clearChatBtn);
+attachPressFeedback(sidebarToggle);
+
+updateSidebarControls();

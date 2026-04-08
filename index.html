@@ -13,51 +13,151 @@
 
   <body>
     <main class="page-shell">
-      <header class="site-header">
-        <div class="brand-row">
-          <img
-            src="img/loreal-logo.png"
-            alt="L'Oréal Paris logo"
-            class="brand-logo"
-          />
-          <div class="brand-copy">
-            <p class="eyebrow">Beauty Intelligence</p>
-            <h1 class="site-title">L'Oréal Beauty Concierge</h1>
+      <!-- Sidebar for chat history -->
+      <aside class="chat-sidebar" id="chatSidebar">
+        <div class="sidebar-header">
+          <button
+            class="new-chat-btn"
+            id="newChatBtn"
+            title="Start new chat"
+            aria-label="Start new chat"
+          >
+            <span class="new-chat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <path d="M4 20h4l10-10-4-4L4 16v4z"></path>
+                <path d="M12 8l4 4"></path>
+              </svg>
+            </span>
+            <span class="new-chat-label">New Chat</span>
+          </button>
+        </div>
+
+        <div class="chat-history-list" id="chatHistoryList">
+          <!-- Conversation list will be populated here -->
+        </div>
+
+        <div class="sidebar-footer">
+          <button
+            class="sidebar-toggle"
+            id="sidebarToggle"
+            title="Toggle sidebar"
+          >
+            <span class="sidebar-toggle-label">Hide archive</span>
+            <span class="sidebar-toggle-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <rect x="5" y="5" width="14" height="14" rx="5"></rect>
+                <path d="M11 8l4 4-4 4"></path>
+                <path d="M8 12h6"></path>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main content -->
+      <div class="main-content">
+        <header class="site-header">
+          <div class="brand-row">
+            <img
+              src="img/loreal-logo.png"
+              alt="L'Oréal Paris logo"
+              class="brand-logo"
+            />
+            <div class="brand-copy">
+              <p class="eyebrow">Beauty Intelligence</p>
+              <h1 class="site-title">L'Oréal Beauty Concierge</h1>
+            </div>
           </div>
-        </div>
-        <p class="site-subtitle">
-          Ask about skincare, haircare, makeup, fragrances, and routines.
-        </p>
-      </header>
-
-      <section class="chat-panel" aria-label="L'Oréal chatbot">
-        <div class="chat-panel-header">
-          <p class="chat-panel-kicker">Personal Beauty Consultation</p>
-          <p class="chat-panel-title">Conversation</p>
-        </div>
-
-        <div class="latest-question-box" id="latestQuestionBox">
-          <p class="latest-question-label">Latest Question</p>
-          <p class="latest-question-text" id="latestQuestionText">
-            Ask your first beauty question to get started.
+          <p class="site-subtitle">
+            Ask about skincare, haircare, makeup, fragrances, and routines.
           </p>
-        </div>
+          <div class="site-header-divider" aria-hidden="true"></div>
 
-        <div id="chatWindow" class="chat-window" aria-live="polite"></div>
+          <div class="editorial-rail" aria-label="Editorial highlights">
+            <div class="editorial-quote">
+              <p class="editorial-kicker">Beauty intelligence</p>
+              <p class="editorial-copy">
+                “Luxury beauty should feel personal, precise, and effortless.”
+              </p>
+              <p class="editorial-source">L'Oréal Concierge</p>
+            </div>
 
-        <form id="chatForm" class="chat-form">
-          <label for="userInput" class="visually-hidden">Message</label>
-          <input
-            id="userInput"
-            name="userInput"
-            type="text"
-            placeholder="Example: Build me a morning routine for dry skin"
-            autocomplete="off"
-            required
-          />
-          <button type="submit" id="sendBtn">Send</button>
-        </form>
-      </section>
+            <div class="preset-panel">
+              <p class="preset-label">Suggested prompts</p>
+              <div class="preset-list" id="presetList">
+                <button
+                  type="button"
+                  class="preset-chip"
+                  data-prompt="Build me a morning skincare routine for dry skin."
+                >
+                  Dry skin routine
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  data-prompt="Recommend a makeup look for a polished everyday finish."
+                >
+                  Everyday makeup
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  data-prompt="What is a simple haircare routine for frizz and shine?"
+                >
+                  Smooth haircare
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  data-prompt="Suggest a fragrance style that feels elegant and fresh."
+                >
+                  Fragrance edit
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section class="chat-panel" aria-label="L'Oréal chatbot">
+          <div class="chat-panel-header">
+            <p class="chat-panel-kicker">Personal Beauty Consultation</p>
+            <div class="chat-controls">
+              <p class="chat-panel-title">Conversation</p>
+              <button
+                type="button"
+                id="clearChatBtn"
+                class="clear-chat-btn"
+                title="Clear chat history"
+                aria-label="Clear chat history"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div class="latest-question-box" id="latestQuestionBox">
+            <p class="latest-question-label">Latest Question</p>
+            <p class="latest-question-text" id="latestQuestionText">
+              Ask your first beauty question to get started.
+            </p>
+          </div>
+
+          <div id="chatWindow" class="chat-window" aria-live="polite"></div>
+
+          <form id="chatForm" class="chat-form">
+            <label for="userInput" class="visually-hidden">Message</label>
+            <input
+              id="userInput"
+              name="userInput"
+              type="text"
+              placeholder="Example: Build me a morning routine for dry skin"
+              autocomplete="off"
+              required
+            />
+            <button type="submit" id="sendBtn">Send</button>
+          </form>
+        </section>
+      </div>
     </main>
 
     <script src="script.js"></script>
