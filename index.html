@@ -1,66 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat Assistant</title>
+    <title>L'Oréal Beauty AI Chatbot</title>
     <link
-      href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
-    <div class="page-wrapper">
-      <!------- Header / Branding ------->
+    <main class="page-shell">
       <header class="site-header">
-        <h1 class="site-title">Smart Product Advisor</h1>
+        <div class="brand-row">
+          <img
+            src="img/loreal-logo.png"
+            alt="L'Oréal Paris logo"
+            class="brand-logo"
+          />
+          <div class="brand-copy">
+            <p class="eyebrow">Beauty Intelligence</p>
+            <h1 class="site-title">L'Oréal Beauty Concierge</h1>
+          </div>
+        </div>
+        <p class="site-subtitle">
+          Ask about skincare, haircare, makeup, fragrances, and routines.
+        </p>
       </header>
 
-      <!------- Chat Area ------->
-      <main>
-        <section class="chatbox">
-          <div id="chatWindow" class="chat-window">
-            <!-- messages will be appended here via JS -->
-          </div>
+      <section class="chat-panel" aria-label="L'Oréal chatbot">
+        <div class="chat-panel-header">
+          <p class="chat-panel-kicker">Personal Beauty Consultation</p>
+          <p class="chat-panel-title">Conversation</p>
+        </div>
 
-          <form id="chatForm" class="chat-form">
-            <label for="userInput" class="visually-hidden">Message</label>
-            <input
-              id="userInput"
-              name="userInput"
-              type="text"
-              placeholder="Ask me about products or routines…"
-              autocomplete="off"
-              required
-            />
-            <button type="submit" id="sendBtn">
-              <span class="material-icons">send</span>
-              <span class="visually-hidden">Send</span>
-            </button>
-          </form>
-        </section>
-      </main>
+        <div class="latest-question-box" id="latestQuestionBox">
+          <p class="latest-question-label">Latest Question</p>
+          <p class="latest-question-text" id="latestQuestionText">
+            Ask your first beauty question to get started.
+          </p>
+        </div>
 
-      <!------- Footer Links ------->
-      <footer class="site-footer">
-        <p>&copy; 2025 Company Name. All rights reserved.</p>
-        <nav>
-          <!-- These URLs are placeholders -->
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms of Use</a>
-          <a href="#">Contact</a>
-        </nav>
-      </footer>
-    </div>
+        <div id="chatWindow" class="chat-window" aria-live="polite"></div>
 
-    <!-- secrets.js can be removed when using Cloudflare Workers for API requests -->
-    <script src="secrets.js"></script>
+        <form id="chatForm" class="chat-form">
+          <label for="userInput" class="visually-hidden">Message</label>
+          <input
+            id="userInput"
+            name="userInput"
+            type="text"
+            placeholder="Example: Build me a morning routine for dry skin"
+            autocomplete="off"
+            required
+          />
+          <button type="submit" id="sendBtn">Send</button>
+        </form>
+      </section>
+    </main>
+
     <script src="script.js"></script>
   </body>
 </html>
