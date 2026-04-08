@@ -2,7 +2,7 @@
   Replace this URL with your deployed Cloudflare Worker endpoint.
   Example: https://something.workers.dev
 */
-const WORKER_URL = "https://loreal-api.nidhilalwani01.workers.dev";
+const WORKER_URL = "https://loreal-chatbot.nidhilalwani01.workers.dev";
 
 /* DOM elements */
 const chatForm = document.getElementById("chatForm");
