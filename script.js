@@ -9,14 +9,35 @@ const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
 const sendBtn = document.getElementById("sendBtn");
-const latestQuestionText = document.getElementById("latestQuestionText");
-const clearChatBtn = document.getElementById("clearChatBtn");
-const presetChips = document.querySelectorAll("[data-prompt]");
 
 const newChatBtn = document.getElementById("newChatBtn");
 const chatHistoryList = document.getElementById("chatHistoryList");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const chatSidebar = document.getElementById("chatSidebar");
+const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+const mobileHistoryModal = document.getElementById("mobileHistoryModal");
+const mobileHistoryCloseBtn = document.getElementById("mobileHistoryCloseBtn");
+const mobileHistoryList = document.getElementById("mobileHistoryList");
+const mobileNewChatBtn = document.getElementById("mobileNewChatBtn");
+
+const suggestedPrompts = [
+  {
+    label: "Dry skin routine",
+    prompt: "Build me a morning skincare routine for dry skin.",
+  },
+  {
+    label: "Everyday makeup",
+    prompt: "Recommend a makeup look for a polished everyday finish.",
+  },
+  {
+    label: "Smooth haircare",
+    prompt: "What is a simple haircare routine for frizz and shine?",
+  },
+  {
+    label: "Fragrance edit",
+    prompt: "Suggest a fragrance style that feels elegant and fresh.",
+  },
+];
 /*
   This system message defines the assistant's behavior and keeps responses
   focused on L'Oréal beauty topics.
@@ -26,9 +47,6 @@ const SYSTEM_MESSAGE = {
   content:
     "You are a L'Oréal beauty assistant chatbot. Help users explore L'Oréal products in skincare, makeup, haircare, and fragrances. Suggest simple routines based on user needs and provide clear, helpful beauty advice. Only answer questions related to L'Oréal, beauty, skincare, makeup, haircare, fragrance, and routines. If a question is unrelated, politely refuse and guide the user back to beauty topics. Do not invent product names or product claims if unsure. Keep answers concise, friendly, professional, warm, and premium. For sensitive skin questions or routines, remind users to patch test and check ingredients.",
 };
-
-const INITIAL_GREETING =
-  "Welcome to L'Oréal Beauty Concierge. I can help with L'Oréal skincare, haircare, makeup, fragrance recommendations, and simple routines.";
 
 // Keep full conversation history so the model can answer follow-up questions.
 let conversationHistory = [SYSTEM_MESSAGE];
@@ -66,12 +84,11 @@ function createNewConversation() {
     messages: [],
   };
   currentConversationId = id;
+  conversationHistory = [SYSTEM_MESSAGE];
   saveAllConversations();
-  loadConversation(id);
-  conversationHistory.push({ role: "assistant", content: INITIAL_GREETING });
-  appendMessage("assistant", INITIAL_GREETING);
   saveConversation();
   renderSidebar();
+  renderEmptyState();
 }
 
 // Load a specific conversation
@@ -87,17 +104,17 @@ function loadConversation(id) {
 
   // Clear chat window and reload messages
   chatWindow.innerHTML = "";
-  conv.messages.forEach((msg) => {
-    if (msg.role !== "system") {
-      appendMessage(msg.role, msg.content);
-    }
-  });
 
-  // Update latest question
-  const lastUserMsg = conv.messages.filter((msg) => msg.role === "user").pop();
-  latestQuestionText.textContent = lastUserMsg
-    ? lastUserMsg.content
-    : "Ask your first beauty question to get started.";
+  if (conv.messages.length === 0) {
+    renderEmptyState();
+  } else {
+    chatWindow.classList.remove("is-empty");
+    conv.messages.forEach((msg) => {
+      if (msg.role !== "system") {
+        appendMessage(msg.role, msg.content);
+      }
+    });
+  }
 
   renderSidebar();
 }
@@ -143,20 +160,26 @@ function deleteConversation(id, event) {
   }
 }
 
-// Render sidebar conversation list
-function renderSidebar() {
-  chatHistoryList.innerHTML = "";
-  const convIds = Object.keys(conversations).sort(
+function getSortedConversationIds() {
+  return Object.keys(conversations).sort(
     (a, b) =>
       new Date(conversations[b].timestamp) -
       new Date(conversations[a].timestamp),
   );
+}
+
+// Render sidebar conversation list
+function renderSidebar() {
+  chatHistoryList.innerHTML = "";
+  const convIds = getSortedConversationIds();
 
   convIds.forEach((id) => {
     const conv = conversations[id];
-    const item = document.createElement("button");
+    const item = document.createElement("div");
     item.className = `conversation-item ${id === currentConversationId ? "active" : ""}`;
-    item.type = "button";
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("aria-pressed", String(id === currentConversationId));
 
     const titleSpan = document.createElement("span");
     titleSpan.textContent = conv.title || "Untitled";
@@ -173,9 +196,77 @@ function renderSidebar() {
     item.appendChild(deleteBtn);
 
     item.onclick = () => loadConversation(id);
+    item.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        loadConversation(id);
+      }
+    });
     attachPressFeedback(item);
     chatHistoryList.appendChild(item);
   });
+
+  renderMobileHistoryList();
+}
+
+function renderMobileHistoryList() {
+  if (!mobileHistoryList) return;
+
+  mobileHistoryList.innerHTML = "";
+  const convIds = getSortedConversationIds();
+
+  if (convIds.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "mobile-history-empty";
+    empty.textContent = "No conversations yet. Start a new chat.";
+    mobileHistoryList.appendChild(empty);
+    return;
+  }
+
+  convIds.forEach((id) => {
+    const conv = conversations[id];
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = `mobile-history-item ${
+      id === currentConversationId ? "active" : ""
+    }`;
+    item.textContent = conv.title || "Untitled";
+    item.addEventListener("click", () => {
+      loadConversation(id);
+      closeMobileHistoryModal();
+    });
+    mobileHistoryList.appendChild(item);
+  });
+}
+
+function openMobileHistoryModal() {
+  if (!mobileHistoryModal) return;
+
+  renderMobileHistoryList();
+  mobileHistoryModal.hidden = false;
+  requestAnimationFrame(() => {
+    mobileHistoryModal.classList.add("open");
+  });
+  document.body.classList.add("modal-open");
+  if (mobileMenuBtn) {
+    mobileMenuBtn.setAttribute("aria-expanded", "true");
+  }
+}
+
+function closeMobileHistoryModal() {
+  if (!mobileHistoryModal) return;
+
+  mobileHistoryModal.classList.remove("open");
+  document.body.classList.remove("modal-open");
+  if (mobileMenuBtn) {
+    mobileMenuBtn.setAttribute("aria-expanded", "false");
+  }
+
+  setTimeout(() => {
+    if (!mobileHistoryModal.classList.contains("open")) {
+      mobileHistoryModal.hidden = true;
+    }
+  }, 180);
 }
 
 // Clear chat history
@@ -222,6 +313,62 @@ function smoothScrollChat() {
   });
 }
 
+function setEmptyState(active) {
+  chatWindow.classList.toggle("is-empty", active);
+}
+
+function renderEmptyState() {
+  chatWindow.innerHTML = "";
+  setEmptyState(true);
+
+  const emptyState = document.createElement("div");
+  emptyState.className = "chat-empty-state";
+
+  const kicker = document.createElement("p");
+  kicker.className = "empty-kicker";
+  kicker.textContent = "Beauty concierge";
+  emptyState.appendChild(kicker);
+
+  const title = document.createElement("h2");
+  title.className = "empty-title";
+  title.textContent =
+    "Ask for a routine, recommendation, or quick beauty edit.";
+  emptyState.appendChild(title);
+
+  const copy = document.createElement("p");
+  copy.className = "empty-copy";
+  copy.textContent =
+    "Try skincare, makeup, haircare, or fragrance questions. Suggested prompts are here to get you started.";
+  emptyState.appendChild(copy);
+
+  const promptGrid = document.createElement("div");
+  promptGrid.className = "empty-prompt-grid";
+
+  suggestedPrompts.forEach((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "empty-prompt";
+    button.textContent = item.label;
+    button.dataset.prompt = item.prompt;
+    button.addEventListener("click", () => {
+      applyPresetPrompt(item.prompt);
+    });
+    attachPressFeedback(button);
+    promptGrid.appendChild(button);
+  });
+
+  emptyState.appendChild(promptGrid);
+  chatWindow.appendChild(emptyState);
+}
+
+function clearEmptyState() {
+  const emptyState = chatWindow.querySelector(".chat-empty-state");
+  if (emptyState) {
+    emptyState.remove();
+  }
+  setEmptyState(false);
+}
+
 function animatePress(element) {
   if (!element) return;
 
@@ -260,6 +407,7 @@ function typeTextIntoBubble(bubble, text, duration = 320) {
 
 async function appendMessage(role, text, options = {}) {
   const { animateTyping = false, highlight = false } = options;
+  clearEmptyState();
   const message = document.createElement("div");
   message.className = `chat-bubble ${role} new-message`;
 
@@ -345,14 +493,14 @@ function applyPresetPrompt(prompt) {
 
 function updateSidebarControls() {
   const isCollapsed = chatSidebar.classList.contains("collapsed");
-  const label = isCollapsed ? "Open sidebar" : "Hide archive";
+  const label = isCollapsed ? "Open sidebar" : "Hide sidebar";
 
   sidebarToggle.setAttribute("aria-label", label);
   sidebarToggle.title = label;
 
   const labelEl = sidebarToggle.querySelector(".sidebar-toggle-label");
   if (labelEl) {
-    labelEl.textContent = isCollapsed ? "Open" : "Hide archive";
+    labelEl.textContent = isCollapsed ? "Open" : "Hide";
   }
 }
 
@@ -400,8 +548,6 @@ async function handleSubmit(event) {
   if (!question) {
     return;
   }
-
-  latestQuestionText.textContent = question;
   appendMessage("user", question);
   userInput.value = "";
 
@@ -461,37 +607,52 @@ if (Object.keys(conversations).length === 0) {
   createNewConversation();
 } else {
   // Load the most recent conversation
-  const convIds = Object.keys(conversations).sort(
-    (a, b) =>
-      new Date(conversations[b].timestamp) -
-      new Date(conversations[a].timestamp),
-  );
+  const convIds = getSortedConversationIds();
   loadConversation(convIds[0]);
-}
-
-// Show initial greeting if this is the first message
-if (conversationHistory.length === 1) {
-  appendMessage("assistant", INITIAL_GREETING);
-  conversationHistory.push({ role: "assistant", content: INITIAL_GREETING });
-  saveConversation();
 }
 
 // Event listeners
 chatForm.addEventListener("submit", handleSubmit);
 newChatBtn.addEventListener("click", createNewConversation);
-clearChatBtn.addEventListener("click", clearChatHistory);
 sidebarToggle.addEventListener("click", () => toggleSidebar());
 
-presetChips.forEach((chip) => {
-  attachPressFeedback(chip);
-  chip.addEventListener("click", () => {
-    applyPresetPrompt(chip.dataset.prompt || "");
+if (mobileMenuBtn) {
+  mobileMenuBtn.addEventListener("click", openMobileHistoryModal);
+}
+
+if (mobileHistoryCloseBtn) {
+  mobileHistoryCloseBtn.addEventListener("click", closeMobileHistoryModal);
+}
+
+if (mobileNewChatBtn) {
+  mobileNewChatBtn.addEventListener("click", () => {
+    createNewConversation();
+    closeMobileHistoryModal();
   });
+}
+
+if (mobileHistoryModal) {
+  mobileHistoryModal.addEventListener("click", (event) => {
+    if (event.target === mobileHistoryModal) {
+      closeMobileHistoryModal();
+    }
+  });
+}
+
+document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    mobileHistoryModal?.classList.contains("open")
+  ) {
+    closeMobileHistoryModal();
+  }
 });
 
 attachPressFeedback(sendBtn);
 attachPressFeedback(newChatBtn);
-attachPressFeedback(clearChatBtn);
 attachPressFeedback(sidebarToggle);
+attachPressFeedback(mobileMenuBtn);
+attachPressFeedback(mobileHistoryCloseBtn);
+attachPressFeedback(mobileNewChatBtn);
 
 updateSidebarControls();

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>L'Oréal Beauty AI Chatbot</title>
+    <title>L’Oréal Beauty Concierge</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;700&display=swap"
       rel="stylesheet"
@@ -13,9 +13,8 @@
 
   <body>
     <main class="page-shell">
-      <!-- Sidebar for chat history -->
       <aside class="chat-sidebar" id="chatSidebar">
-        <div class="sidebar-header">
+        <div class="sidebar-top">
           <button
             class="new-chat-btn"
             id="newChatBtn"
@@ -30,11 +29,11 @@
             </span>
             <span class="new-chat-label">New Chat</span>
           </button>
+
+          <p class="sidebar-label">Chat history</p>
         </div>
 
-        <div class="chat-history-list" id="chatHistoryList">
-          <!-- Conversation list will be populated here -->
-        </div>
+        <div class="chat-history-list" id="chatHistoryList"></div>
 
         <div class="sidebar-footer">
           <button
@@ -54,94 +53,37 @@
         </div>
       </aside>
 
-      <!-- Main content -->
       <div class="main-content">
-        <header class="site-header">
-          <div class="brand-row">
+        <header class="simple-header">
+          <div class="simple-header-brand">
             <img
               src="img/loreal-logo.png"
               alt="L'Oréal Paris logo"
-              class="brand-logo"
+              class="simple-logo"
+              onerror="this.style.display = 'none'"
             />
-            <div class="brand-copy">
-              <p class="eyebrow">Beauty Intelligence</p>
-              <h1 class="site-title">L'Oréal Beauty Concierge</h1>
-            </div>
-          </div>
-          <p class="site-subtitle">
-            Ask about skincare, haircare, makeup, fragrances, and routines.
-          </p>
-          <div class="site-header-divider" aria-hidden="true"></div>
-
-          <div class="editorial-rail" aria-label="Editorial highlights">
-            <div class="editorial-quote">
-              <p class="editorial-kicker">Beauty intelligence</p>
-              <p class="editorial-copy">
-                “Luxury beauty should feel personal, precise, and effortless.”
-              </p>
-              <p class="editorial-source">L'Oréal Concierge</p>
-            </div>
-
-            <div class="preset-panel">
-              <p class="preset-label">Suggested prompts</p>
-              <div class="preset-list" id="presetList">
-                <button
-                  type="button"
-                  class="preset-chip"
-                  data-prompt="Build me a morning skincare routine for dry skin."
-                >
-                  Dry skin routine
-                </button>
-                <button
-                  type="button"
-                  class="preset-chip"
-                  data-prompt="Recommend a makeup look for a polished everyday finish."
-                >
-                  Everyday makeup
-                </button>
-                <button
-                  type="button"
-                  class="preset-chip"
-                  data-prompt="What is a simple haircare routine for frizz and shine?"
-                >
-                  Smooth haircare
-                </button>
-                <button
-                  type="button"
-                  class="preset-chip"
-                  data-prompt="Suggest a fragrance style that feels elegant and fresh."
-                >
-                  Fragrance edit
-                </button>
-              </div>
+            <div class="simple-title-row">
+              <h1 class="simple-title">L’Oréal Beauty Concierge</h1>
+              <button
+                type="button"
+                id="mobileMenuBtn"
+                class="mobile-menu-btn"
+                aria-label="Menu"
+                title="Menu"
+                aria-expanded="false"
+                aria-controls="mobileHistoryModal"
+              >
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                  <path d="M4 7h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 17h16"></path>
+                </svg>
+              </button>
             </div>
           </div>
         </header>
 
-        <section class="chat-panel" aria-label="L'Oréal chatbot">
-          <div class="chat-panel-header">
-            <p class="chat-panel-kicker">Personal Beauty Consultation</p>
-            <div class="chat-controls">
-              <p class="chat-panel-title">Conversation</p>
-              <button
-                type="button"
-                id="clearChatBtn"
-                class="clear-chat-btn"
-                title="Clear chat history"
-                aria-label="Clear chat history"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          <div class="latest-question-box" id="latestQuestionBox">
-            <p class="latest-question-label">Latest Question</p>
-            <p class="latest-question-text" id="latestQuestionText">
-              Ask your first beauty question to get started.
-            </p>
-          </div>
-
+        <section class="chat-stage" aria-label="L'Oréal chatbot conversation">
           <div id="chatWindow" class="chat-window" aria-live="polite"></div>
 
           <form id="chatForm" class="chat-form">
@@ -150,7 +92,7 @@
               id="userInput"
               name="userInput"
               type="text"
-              placeholder="Example: Build me a morning routine for dry skin"
+              placeholder="Ask about skincare, haircare, makeup, or fragrance"
               autocomplete="off"
               required
             />
@@ -159,6 +101,32 @@
         </section>
       </div>
     </main>
+
+    <div class="mobile-history-modal" id="mobileHistoryModal" hidden>
+      <div class="mobile-history-sheet" role="dialog" aria-modal="true">
+        <div class="mobile-history-header">
+          <p class="mobile-history-title">Chat history</p>
+          <button
+            type="button"
+            class="mobile-history-close"
+            id="mobileHistoryCloseBtn"
+            aria-label="Close menu"
+          >
+            <span aria-hidden="true">✕</span>
+          </button>
+        </div>
+
+        <button type="button" class="mobile-history-new" id="mobileNewChatBtn">
+          New chat
+        </button>
+
+        <div
+          class="mobile-history-list"
+          id="mobileHistoryList"
+          aria-label="Mobile chat history"
+        ></div>
+      </div>
+    </div>
 
     <script src="script.js"></script>
   </body>
